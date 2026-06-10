@@ -1,5 +1,32 @@
 # @mastra/react
 
+## 0.6.0-alpha.4
+
+### Minor Changes
+
+- Added voice helpers to the React SDK and made agent text-to-speech audible. ([#17663](https://github.com/mastra-ai/mastra/pull/17663))
+
+  The React SDK now exposes voice helpers: `useSpeechRecognition` for speech-to-text, `playStreamWithWebAudio` for buffered Web Audio playback from a `ReadableStream`, and `recordMicrophoneToFile` for capturing microphone audio. The `useSpeechRecognition` hook automatically uses an agent's voice provider when one is configured, and falls back to the browser's built-in speech recognition otherwise.
+
+  ```tsx
+  import { useSpeechRecognition } from '@mastra/react';
+
+  function VoiceInput({ agentId }: { agentId?: string }) {
+    const { start, stop, isListening, transcript } = useSpeechRecognition({ agentId });
+    return <button onClick={isListening ? stop : start}>{transcript}</button>;
+  }
+  ```
+
+  Also fixed agent text-to-speech being inaudible. The `voice/speak` route now returns a web-standard audio response (`Content-Type: audio/mpeg`) so server-side adapters pass raw audio bytes through to the client instead of JSON-encoding them. This also resolves `getReader` crashes when an agent speaks using providers like OpenAI voice.
+
+- Show a sent user message instantly as a pending bubble in the chat thread, then settle it in place when the server confirms it — instead of staging it near the composer. The optimistic bubble and the outgoing message share a client-generated correlation id, so the server echo reconciles the exact bubble with no duplicate message. ([#17688](https://github.com/mastra-ai/mastra/pull/17688))
+
+### Patch Changes
+
+- Updated dependencies [[`575f815`](https://github.com/mastra-ai/mastra/commit/575f815c5c3567b71c0b83cbb7fa98c8253a9d9c), [`5191af8`](https://github.com/mastra-ai/mastra/commit/5191af80c799eea25357c545fc05d91b3883531d), [`43bd3d4`](https://github.com/mastra-ai/mastra/commit/43bd3d421987463fdf35386a45199c49499ed069), [`1e9aab5`](https://github.com/mastra-ai/mastra/commit/1e9aab50ff11e6e88fde4d7cbf512c44a9fe8d61), [`493a328`](https://github.com/mastra-ai/mastra/commit/493a328f4346a1deeb9f1e2e44c8f2a3a4d7591b), [`029a414`](https://github.com/mastra-ai/mastra/commit/029a4141719793bd3e898a39eb5a0466a55f5f3a), [`cf182b7`](https://github.com/mastra-ai/mastra/commit/cf182b7fb495767946d9840ef29f19cfa906f31f), [`2a96528`](https://github.com/mastra-ai/mastra/commit/2a9652848dfa3c5a2426f952e9d93554c26fd90f), [`61f5491`](https://github.com/mastra-ai/mastra/commit/61f54912e6453cc706bb5d7df9f6c7aad78d428f), [`63e3fe1`](https://github.com/mastra-ai/mastra/commit/63e3fe13cc1ea96f91d7c68aea92f400faf9e4da), [`1d4ce8d`](https://github.com/mastra-ai/mastra/commit/1d4ce8daaa54511f325c1b609d31b8e54009d677), [`8c68372`](https://github.com/mastra-ai/mastra/commit/8c68372e85fe0b066ec12c58bd29ffb93e54c552)]:
+  - @mastra/core@1.42.0-alpha.4
+  - @mastra/client-js@1.24.0-alpha.4
+
 ## 0.5.3-alpha.3
 
 ### Patch Changes

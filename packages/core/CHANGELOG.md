@@ -1,5 +1,106 @@
 # @mastra/core
 
+## 1.42.0-alpha.4
+
+### Minor Changes
+
+- Added a system actor signal to core FGA checks for trusted server-side membership bypasses. ([#17483](https://github.com/mastra-ai/mastra/pull/17483))
+
+  ```ts
+  const systemActor = { actorKind: 'system', sourceWorkflow: 'nightly-workflow' } as const;
+  await checkFGA({ ...fgaOptions, requestContext, systemActor });
+  await requireFGA({ ...fgaOptions, requestContext, systemActor });
+  ```
+
+- Enabled persistent storage for durable harness sessions across storage backends. Harness v1 can now resolve its session store from a configured storage adapter. ([#17712](https://github.com/mastra-ai/mastra/pull/17712))
+
+- Added MCP server Fine-Grained Authorization mapping overrides for tool authorization. ([#17529](https://github.com/mastra-ai/mastra/pull/17529))
+
+  Use the new `fga` option on `MCPServer` to customize the resource and permission mappings used for `tools/list` and `tools/call` checks without changing the Mastra instance-level `tool` mapping used by internal agent and workflow tool execution.
+
+  ```ts
+  const server = new MCPServer({
+    name: 'My Server',
+    version: '1.0.0',
+    tools: { getData },
+    fga: {
+      resourceMapping: {
+        tool: {
+          fgaResourceType: 'user',
+          deriveId: ({ user }) => user.id,
+        },
+      },
+      permissionMapping: {
+        'tools:execute': 'read',
+      },
+    },
+  });
+  ```
+
+- Add workspace registry cleanup and shutdown destruction. ([#17661](https://github.com/mastra-ai/mastra/pull/17661))
+
+  Mastra now exposes `removeWorkspace(id, { destroy })` for removing runtime workspaces from the registry. When `destroy` is true, the workspace is destroyed before removal and remains registered if destruction fails.
+
+  `mastra.shutdown()` now destroys registered workspaces before closing storage and unregisters only the workspaces that clean up successfully. Workspace tool execution also updates `lastAccessedAt`, so runtime activity is tracked beyond search operations.
+
+  ```ts
+  await mastra.removeWorkspace('workspace-123', { destroy: true }); // destroys, then unregisters
+  await mastra.removeWorkspace('workspace-456'); // unregisters only; caller owns destroy
+  await mastra.shutdown(); // destroys registered workspaces, then closes storage
+  ```
+
+- Added two options to `ToolSearchProcessor` for cheaper, more cache-friendly tool discovery. ([#17691](https://github.com/mastra-ai/mastra/pull/17691))
+
+  **`autoLoad`: one-turn discovery**
+
+  Set `search.autoLoad` so that `search_tools` activates the matching tools immediately, removing the separate `load_tool` round-trip. The model searches once and can call a discovered tool on its next turn instead of searching, loading, then calling. This cuts one model turn (and a full prompt replay) per discovery.
+
+  ```typescript
+  import { ToolSearchProcessor } from '@mastra/core/processors';
+
+  const toolSearch = new ToolSearchProcessor({
+    tools: allTools,
+    search: { topK: 3, autoLoad: true },
+  });
+  ```
+
+  **`storage`: opt-in `'context'` mode**
+
+  Choose where loaded-tool state lives. The default `'in-memory'` keeps the original behavior. The new opt-in `'context'` mode derives loaded tools from the conversation messages, so it is restart-safe, needs no memory configuration, and de-loads a tool once its discovery result is no longer in the messages.
+
+  ```typescript
+  const toolSearch = new ToolSearchProcessor({
+    tools: allTools,
+    storage: 'context',
+  });
+  ```
+
+  Both modes are cache-friendly when loading tools, since loads are append-only and keep the cached prompt prefix stable. The default `'in-memory'` store still shares a single `'default'` entry across anonymous (no thread ID) requests; use `storage: 'context'` to keep anonymous requests isolated and derive loaded tools from the conversation messages.
+
+### Patch Changes
+
+- Fixed silent error swallowing when agent.stream() fails during idle-start, continuation, or pending-idle signal processing. Errors now propagate to the subscription stream via a new run-failed event, so harness consumers (like MastraCode) surface proper error events instead of silently completing with no response. ([#17727](https://github.com/mastra-ai/mastra/pull/17727))
+
+- Fixed durable and evented agent streams so tool-call steps continue to final text when maxSteps allows it. ([#16679](https://github.com/mastra-ai/mastra/pull/16679))
+
+- - Use evented-workflow engine in the internal agentic loop. ([#16796](https://github.com/mastra-ai/mastra/pull/16796))
+  - Fix nested workflow resume with resumeLabel in evented-workflow engine.
+  - Default to an in-memory store when no `storage` is configured on `Mastra`, and warn that it is not durable and a persistent storage adapter should be used in production.
+
+- Added a local development warning when Enterprise features are used without a valid license. ([#17694](https://github.com/mastra-ai/mastra/pull/17694))
+
+- Update ai-sdk deps ([#17144](https://github.com/mastra-ai/mastra/pull/17144))
+
+- Fixed Windows absolute paths breaking workspace skill discovery. `WorkspaceSkills` split paths on `/` only, so a skill referenced by an absolute Windows path loaded with the wrong name (the full path string or `unknown`) or failed to load, and skills under `node_modules` were misclassified as local instead of external. ([#17671](https://github.com/mastra-ai/mastra/pull/17671))
+
+  Skills passed by absolute path now resolve the same way on Windows and POSIX:
+
+  ```ts
+  new Workspace({
+    skills: ['C:\\Users\\me\\skills\\my-skill'],
+  });
+  ```
+
 ## 1.42.0-alpha.3
 
 ### Minor Changes

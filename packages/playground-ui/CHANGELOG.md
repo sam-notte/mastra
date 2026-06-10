@@ -1,5 +1,140 @@
 # @mastra/playground-ui
 
+## 33.0.0-alpha.4
+
+### Minor Changes
+
+- Added per-component entrypoints under `@mastra/playground-ui/components/*` and enabled tree-shaking via the `sideEffects` field. ([#17740](https://github.com/mastra-ai/mastra/pull/17740))
+
+  **New per-component entrypoints**
+
+  Every design-system component can now be imported directly, without going through the root barrel:
+
+  ```ts
+  import { Button } from '@mastra/playground-ui/components/Button';
+  ```
+
+  The root `@mastra/playground-ui` import keeps working unchanged — this change is purely additive. Deep imports let bundlers pull in only the components you use instead of the whole library.
+
+  **Better tree-shaking**
+
+  The package now declares `"sideEffects": ["**/*.css"]`, so bundlers can drop unused re-exports even for apps that keep importing from the root barrel. The CSS contract is unchanged: import `@mastra/playground-ui/style.css` once, then import components from any subpath.
+
+- Removed legacy raw font-name aliases from playground UI theme tokens. Consumers should use `--font-display`, `--font-body`, and `--font-mono` directly. ([#17707](https://github.com/mastra-ai/mastra/pull/17707))
+
+- Added a Download trace JSON button to the trace detail panel in Studio. It saves the entire trace — every span with its full input, output, metadata, and attributes — to a `trace-<id>.json` file, so you can share a trace, attach it to a bug report, or build an eval dataset offline. Previously only individual IDs and per-section values could be copied. ([#17752](https://github.com/mastra-ai/mastra/pull/17752))
+
+- Improved code rendering in the design system so `CodeBlock` is the canonical surface for static code. ([#17430](https://github.com/mastra-ai/mastra/pull/17430))
+
+  **Fixed** syntax-highlighted code to follow light and dark mode by default. Token colors are now resolved in CSS from the active theme class instead of JavaScript, so highlighted code works without a `ThemeProvider`.
+
+  **Added** a low-level `Code` component, now shared by `CodeBlock` and `MarkdownRenderer` and exported for custom code surfaces:
+
+  ```tsx
+  import { Code } from '@mastra/playground-ui';
+
+  <Code code="pnpm dlx mastra init" lang="bash" />;
+  ```
+
+  **Added** an `overflow` prop to `CodeBlock`. Use the default `wrap` for commands and snippets, and `scroll` for source code where preserving columns matters:
+
+  ```tsx
+  <CodeBlock code={source} lang="typescript" overflow="scroll" />
+  ```
+
+  **Added** Python syntax highlighting support.
+
+- Added a new `@mastra/playground-ui/theme.css` export and made the Mastra brand green a built-in color. ([#17668](https://github.com/mastra-ai/mastra/pull/17668))
+
+  **New theme.css export**
+
+  You can now import the design tokens as raw CSS:
+
+  ```css
+  @import 'tailwindcss';
+  @import '@mastra/playground-ui/theme.css'; /* design tokens */
+  @import '@mastra/playground-ui/style.css'; /* component styles */
+  ```
+
+  Before, apps had to copy every token into their own `@theme` block so Tailwind would generate the matching utility classes (like `bg-surface1` or `text-neutral4`). Now your app's Tailwind reads the tokens from this file directly. This is the same pattern as `tailwindcss/theme.css`, and it keeps the tokens defined in one place.
+
+  **Brand green and chart colors**
+
+  The `green-*` classes now use the Mastra brand green (in both light and dark mode) instead of Tailwind's default green. New `--chart-1` through `--chart-5` colors are also available for charts. If you used the stock Tailwind green before, the new green looks a bit more vivid.
+
+- Added role-based semantic font tokens so consumers can swap fonts in one declaration. Components now reference `--font-display` (headlines, brand) and `--font-body` (UI, paragraphs) instead of type-based `--font-sans` / `--font-serif`. Existing utilities keep working through backward-compat aliases (`--font-sans` → `--font-body`, `--font-serif` → `--font-display`). ([#16265](https://github.com/mastra-ai/mastra/pull/16265))
+
+  **Override fonts in your app**
+
+  ```css
+  :root {
+    --font-display: 'Inter', system-ui, sans-serif;
+    --font-body: 'Inter', system-ui, sans-serif;
+    --font-mono: 'Commit Mono', ui-monospace, monospace;
+  }
+  ```
+
+  **Backward-compat for existing consumers** — the legacy raw font-name vars `--geist-mono`, `--font-inter`, `--tasa-explorer` continue to resolve via aliases to the semantic tokens, so any `font-family: var(--geist-mono)` keeps working without code changes. New code should reference `var(--font-mono)` directly.
+
+  The package no longer ships font files — defaults are system fonts. Bring your own fonts via `@font-face` in your app and override the tokens above.
+
+- **Added an `xs` size** to Button, Input, Select, and InputGroup for compact, dense layouts. ([#17675](https://github.com/mastra-ai/mastra/pull/17675))
+
+  ```tsx
+  <Button size="xs">Compact</Button>
+  <Input size="xs" />
+  ```
+
+  **Unified the keyboard-focus look across controls.** Buttons now show the same subtle border highlight on focus as inputs and selects, instead of a green ring, so a row of buttons, inputs, and selects feels consistent.
+
+  **Made Select and Combobox triggers match buttons.** They are now pill-shaped and reuse the Button styling, so a select reads like a button with a dropdown arrow. Their field-safe visual variants are `default` (filled, used by default), `outline`, and `ghost` — the same looks as buttons, minus the high-emphasis `primary`. Since `default` is the default, you only pass a `variant` to switch to `outline` or `ghost`. Legacy `SelectTrigger variant="primary"` and `Combobox variant="link"` are still accepted for source compatibility, but render as the closest field-safe look. MultiCombobox's `variant` now works (it previously had no effect).
+
+  **Deprecated `asChild`** on the DropdownMenu, Dialog, AlertDialog, and Popover triggers (and DialogClose). Pass your element to the `render` prop instead. `asChild` still works for now.
+
+  ```tsx
+  // Before
+  <DropdownMenu.Trigger asChild>
+    <Button>Open</Button>
+  </DropdownMenu.Trigger>
+
+  // After
+  <DropdownMenu.Trigger render={<Button>Open</Button>} />
+  ```
+
+- Added a token-usage-over-time timeline to the Studio metrics dashboard, showing input/output tokens per day and cost, filterable by agent and workflow. ([#17686](https://github.com/mastra-ai/mastra/pull/17686))
+
+### Patch Changes
+
+- Fixed combobox keyboard selection after filtering so pressing Enter chooses the first matching option. ([#17772](https://github.com/mastra-ai/mastra/pull/17772))
+
+- Fixed the Studio Metrics **Latency** card drilldown, which was a silent no-op on all three tabs (Agents, Workflows, Tools). The view-level click guard and the container-level navigation handler both read a `rawTimestamp` field that the hook never produces; the only timestamp on a `LatencyPoint` is `tsMs`. Clicking a chart point now correctly navigates to the Traces page filtered to the 1-hour bucket and the entity type of the active tab. ([#17704](https://github.com/mastra-ai/mastra/pull/17704))
+
+- Added an optional `data-testid` prop to the Breadcrumb `Crumb` so individual crumbs can be targeted in tests and automation. ([#17687](https://github.com/mastra-ai/mastra/pull/17687))
+
+- Improved DataList pagination controls, row and header separators, wrapped-row spacing, text truncation, horizontal overflow handling, and empty-cell rendering. ([#17718](https://github.com/mastra-ai/mastra/pull/17718))
+
+- Removed five rarely-used components from the root barrel export. `SettingsRow`, `PrevNextNav`, `MetricsKpiCard`, `SideDialog`, and `ContextMenu` must now be imported from their per-component entrypoints (added in v33.1): ([#17753](https://github.com/mastra-ai/mastra/pull/17753))
+
+  ```ts
+  // before
+  import { SettingsRow, SideDialog, type SideDialogRootProps } from '@mastra/playground-ui';
+
+  // after
+  import { SettingsRow } from '@mastra/playground-ui/components/SettingsRow';
+  import { SideDialog, type SideDialogRootProps } from '@mastra/playground-ui/components/SideDialog';
+  ```
+
+  This is the first step of gradually slimming down the root barrel so apps only load the components they use. All other root exports are unchanged.
+
+- Fixed the Evaluate Trace button in Studio (Agents → Traces) doing nothing on the first click. Selecting the anchor span and opening the scoring tab now happen in a single URL update instead of two racing ones, so the scoring panel opens immediately. ([#17730](https://github.com/mastra-ai/mastra/pull/17730))
+
+- Fixed the Agent and Workflow icon not appearing in the Traces and Logs entity column. The icon now matches the stored lowercase entity types (`agent`, `workflow_run`) instead of only uppercase values, so you can tell agent runs from workflow runs at a glance. ([#17730](https://github.com/mastra-ai/mastra/pull/17730))
+
+- Updated dependencies [[`575f815`](https://github.com/mastra-ai/mastra/commit/575f815c5c3567b71c0b83cbb7fa98c8253a9d9c), [`5191af8`](https://github.com/mastra-ai/mastra/commit/5191af80c799eea25357c545fc05d91b3883531d), [`43bd3d4`](https://github.com/mastra-ai/mastra/commit/43bd3d421987463fdf35386a45199c49499ed069), [`1e9aab5`](https://github.com/mastra-ai/mastra/commit/1e9aab50ff11e6e88fde4d7cbf512c44a9fe8d61), [`3abfa15`](https://github.com/mastra-ai/mastra/commit/3abfa158881ad3b187f69392cc64fe3a5aeed5c3), [`493a328`](https://github.com/mastra-ai/mastra/commit/493a328f4346a1deeb9f1e2e44c8f2a3a4d7591b), [`029a414`](https://github.com/mastra-ai/mastra/commit/029a4141719793bd3e898a39eb5a0466a55f5f3a), [`36df947`](https://github.com/mastra-ai/mastra/commit/36df947de2603131fd24652db61af7799a790827), [`cf182b7`](https://github.com/mastra-ai/mastra/commit/cf182b7fb495767946d9840ef29f19cfa906f31f), [`2a96528`](https://github.com/mastra-ai/mastra/commit/2a9652848dfa3c5a2426f952e9d93554c26fd90f), [`61f5491`](https://github.com/mastra-ai/mastra/commit/61f54912e6453cc706bb5d7df9f6c7aad78d428f), [`63e3fe1`](https://github.com/mastra-ai/mastra/commit/63e3fe13cc1ea96f91d7c68aea92f400faf9e4da), [`1d4ce8d`](https://github.com/mastra-ai/mastra/commit/1d4ce8daaa54511f325c1b609d31b8e54009d677), [`8c68372`](https://github.com/mastra-ai/mastra/commit/8c68372e85fe0b066ec12c58bd29ffb93e54c552)]:
+  - @mastra/core@1.42.0-alpha.4
+  - @mastra/react@0.6.0-alpha.4
+  - @mastra/client-js@1.24.0-alpha.4
+
 ## 33.0.0-alpha.3
 
 ### Patch Changes

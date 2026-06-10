@@ -1,5 +1,45 @@
 # @internal/playground
 
+## 1.13.0-alpha.4
+
+### Minor Changes
+
+- Added warnings when deleting or unsharing a referenced agent in Mastra Studio. ([#17184](https://github.com/mastra-ai/mastra/pull/17184))
+
+  The agent-builder now uses the stored-agent dependents lookup endpoint to warn users
+  in two confirm dialogs:
+  - **Delete agent**: shows a warning listing caller-readable dependents by name (truncated
+    to 5 plus "and N more") and a hidden count when the target is public and referenced
+    from other workspaces. The confirm button is briefly disabled while the lookup is in
+    flight.
+  - **Make private**: shows the same warnings on the public → private confirm dialog with
+    softer copy ("may break", "may stop working").
+
+  Both warnings are informational — the user can always proceed.
+
+### Patch Changes
+
+- Fixed Agent Builder setup steps so model and tool pickers match the edit tabs and stay in a loading state until available tools finish loading. ([#17223](https://github.com/mastra-ai/mastra/pull/17223))
+
+- Fixed the Studio Metrics **Latency** card drilldown, which was a silent no-op on all three tabs (Agents, Workflows, Tools). The view-level click guard and the container-level navigation handler both read a `rawTimestamp` field that the hook never produces; the only timestamp on a `LatencyPoint` is `tsMs`. Clicking a chart point now correctly navigates to the Traces page filtered to the 1-hour bucket and the entity type of the active tab. ([#17704](https://github.com/mastra-ai/mastra/pull/17704))
+
+- Added a bottom border under each step title in the agent builder onboarding flow to better separate the header from the step content. ([#17223](https://github.com/mastra-ai/mastra/pull/17223))
+
+- Refined the agent chat Memory sidebar in Studio. The left Memory panel is now always visible: when the agent has no memory configured it shows an empty state explaining that conversations are only saved as threads when memory is enabled, with a link to the Agent Memory docs, and the Threads/Memory Configuration tabs are hidden until memory is active. Removed the "Memory" title/icon header from the sidebar and the "Agent Memory On/Off" row from the agent Overview metadata. Renamed the "Configuration" tab to "Memory Configuration", widened the sidebar's default width, and tightened the configuration panel's padding for consistent spacing. ([#17667](https://github.com/mastra-ai/mastra/pull/17667))
+
+- Updated Studio to use Mona Sans for display and body text. ([#17707](https://github.com/mastra-ai/mastra/pull/17707))
+
+- Added tool provider integrations to the Agent Builder: ([#17223](https://github.com/mastra-ai/mastra/pull/17223))
+  - New `/integrations` settings page to view, authorize (via OAuth), and disconnect tool-provider connections, with admin-grouped author rows.
+  - Integration tools now appear in the Builder tool picker with connection badges. Each badge supports inline rename (with autosave) and disconnect (with confirmation). Clicking "Connect" on an unchecked tool auto-checks it and pins the freshly authorized connection.
+  - Builder connection picker is scoped to the current user by default — admins editing their own agents see only their own connections.
+
+- Updated dependencies [[`575f815`](https://github.com/mastra-ai/mastra/commit/575f815c5c3567b71c0b83cbb7fa98c8253a9d9c), [`5191af8`](https://github.com/mastra-ai/mastra/commit/5191af80c799eea25357c545fc05d91b3883531d), [`4651e65`](https://github.com/mastra-ai/mastra/commit/4651e65b7bc0db68bb8b8d1aa7c60ef470996ef6), [`43bd3d4`](https://github.com/mastra-ai/mastra/commit/43bd3d421987463fdf35386a45199c49499ed069), [`1e9aab5`](https://github.com/mastra-ai/mastra/commit/1e9aab50ff11e6e88fde4d7cbf512c44a9fe8d61), [`318cb8e`](https://github.com/mastra-ai/mastra/commit/318cb8edb1855313e4b9a0b4d30b11fc8b64e471), [`3abfa15`](https://github.com/mastra-ai/mastra/commit/3abfa158881ad3b187f69392cc64fe3a5aeed5c3), [`493a328`](https://github.com/mastra-ai/mastra/commit/493a328f4346a1deeb9f1e2e44c8f2a3a4d7591b), [`24df473`](https://github.com/mastra-ai/mastra/commit/24df473a93ca916459bffbc6df9926bcf5f933ba), [`d90a2e5`](https://github.com/mastra-ai/mastra/commit/d90a2e5ecedc0c5b8b94df861e88e5d10a92a2eb), [`e0809c6`](https://github.com/mastra-ai/mastra/commit/e0809c69faec2715163f446264e123776258d09f), [`029a414`](https://github.com/mastra-ai/mastra/commit/029a4141719793bd3e898a39eb5a0466a55f5f3a), [`c64ef80`](https://github.com/mastra-ai/mastra/commit/c64ef80dd90b261d0ade97918d6d0c17c422c4c1), [`3761b5f`](https://github.com/mastra-ai/mastra/commit/3761b5f6a031f2ae43a886e870d0fbc76d2b7b59), [`356e13f`](https://github.com/mastra-ai/mastra/commit/356e13f1df93638306cd0f5eabdbc9a0cbb04164), [`36df947`](https://github.com/mastra-ai/mastra/commit/36df947de2603131fd24652db61af7799a790827), [`b7f5a4d`](https://github.com/mastra-ai/mastra/commit/b7f5a4d38e35d457d616ec2e8a53c2f012cb7f3a), [`cf182b7`](https://github.com/mastra-ai/mastra/commit/cf182b7fb495767946d9840ef29f19cfa906f31f), [`2e6941a`](https://github.com/mastra-ai/mastra/commit/2e6941a39915f00aef0d0bafcbdc652e74281661), [`1bd3830`](https://github.com/mastra-ai/mastra/commit/1bd38306e0d4d36868420b4bdd4db9876811545a), [`9360036`](https://github.com/mastra-ai/mastra/commit/9360036b21a47badd530ad38ee76fd01c07e3ba9), [`2a96528`](https://github.com/mastra-ai/mastra/commit/2a9652848dfa3c5a2426f952e9d93554c26fd90f), [`2ea4169`](https://github.com/mastra-ai/mastra/commit/2ea41690134a91169453e422b09de66dc9a6f054), [`61f5491`](https://github.com/mastra-ai/mastra/commit/61f54912e6453cc706bb5d7df9f6c7aad78d428f), [`2ea4169`](https://github.com/mastra-ai/mastra/commit/2ea41690134a91169453e422b09de66dc9a6f054), [`61f5491`](https://github.com/mastra-ai/mastra/commit/61f54912e6453cc706bb5d7df9f6c7aad78d428f), [`63e3fe1`](https://github.com/mastra-ai/mastra/commit/63e3fe13cc1ea96f91d7c68aea92f400faf9e4da), [`1d4ce8d`](https://github.com/mastra-ai/mastra/commit/1d4ce8daaa54511f325c1b609d31b8e54009d677), [`8c68372`](https://github.com/mastra-ai/mastra/commit/8c68372e85fe0b066ec12c58bd29ffb93e54c552)]:
+  - @mastra/core@1.42.0-alpha.4
+  - @mastra/playground-ui@33.0.0-alpha.4
+  - @mastra/react@0.6.0-alpha.4
+  - @mastra/client-js@1.24.0-alpha.4
+
 ## 1.12.3-alpha.3
 
 ### Patch Changes
